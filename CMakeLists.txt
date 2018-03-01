@@ -3,4 +3,4 @@ project(tap01)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(tap01 src/main.cpp)
+add_executable(tap01 src/main.cpp src/Base.h)
