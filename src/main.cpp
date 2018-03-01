@@ -2,6 +2,9 @@
 #include "Base.h"
 #include "Config.h"
 
+const int XIS = 0;
+const int BOLA = 1;
+
 int main() {
     std::cout << "Eae Rafao" << std::endl;
 
@@ -19,14 +22,47 @@ int main() {
     std::cout << "Possibilidades de Config da Coluna:" << std::endl;
     int id = 0;
     auto *configs = new config_t[tab_possib];
+
+    int **posicao;
+    posicao = new int *[2];
+    posicao[ XIS ] = new int[tab_possib];
+    posicao[ BOLA ] = new int[tab_possib];
+
+    int **index;
+    index = new int *[tab_ALTURA];
     for ( int i = 0; i < tab_ALTURA; ++i )
-        for ( int j = tab_ALTURA - 1; j >= 0; --j )
+        index[ i ] = new int[tab_ALTURA];
+
+    for ( int i = 0; i < tab_ALTURA; ++i ) // X
+        for ( int j = tab_ALTURA - 1; j >= 0; --j ) // O
             if ( i != j ) {
                 configs[ id ] = config( id, i, j );
+                posicao[ XIS ][ id ] = i;
+                posicao[ BOLA ][ id ] = j;
+                index[ i ][ j ] = id;
                 id++;
             }
     for ( int i = 0; i < tab_possib; ++i )
         printConfig( &configs[ i ] );
+
+    // INDEX
+    std::cout << "POSICAO:" << std::endl;
+    for ( int i = 0; i < tab_possib; ++i ) {
+        std::cout << "  (" << XIS << " " << i << ") -> " << posicao[ XIS ][ i ] << std::endl;
+        std::cout << "  (" << BOLA << " " << i << ") -> " << posicao[ BOLA ][ i ] << std::endl;
+    }
+    std::cout << "INDEX:" << std::endl;
+    for ( int i = 0; i < tab_ALTURA; ++i ) {
+        std::cout << "  ";
+        for ( int j = 0; j < tab_ALTURA; ++j ) {
+            if ( i != j )
+                std::cout << index[ i ][ j ] << " ";
+            else
+                std::cout << ". ";
+        }
+        std::cout << std::endl;
+    }
+
 
     return 0;
 }
