@@ -9,7 +9,7 @@
 #define V false     // VERBOSE
 
 #define tab_ALTURA 5
-#define tab_possib 19
+#define tab_POSSIB 19
 #define BOLA 0 // O BRANCO sobe
 #define XIS 1  // X PRETO  desce
 
@@ -22,10 +22,11 @@
 
 int **posicao;
 int **index;
-int grafo_coluna[2][tab_possib][3];
+int grafo_coluna[2][tab_POSSIB][3];
 std::vector<int> grafo_tabuleiro[2][8000];
 int vencedor[2][8000];
 std::vector<int> grafo[2 * 8000];
+int estrategia[2 * 8000];
 
 /**
  * Struct do ID
@@ -77,6 +78,10 @@ struct config_t {
     int bola;
     int xis;
 };
+
+int convert_ID_para_PASSO( int atual, int prox );
+
+int convert_PASSO_para_ID( int atual, int coluna, int passo );
 
 static config_t config( int id, int bola, int xis ) { return { id, bola, xis }; }
 
@@ -167,7 +172,7 @@ int terminal( int k ) {
 }
 
 // (1876) -> 9876
-void printTabuleiro( int id ) { //1876
+void printTabuleiro( int id ) {
     ID_t a2 = Base::int2ID( id );
     std::cout << "( " << id << " ) -> " << a2.id0 << " " << a2.id1 << " " << a2.id2 << std::endl;
     config_t c1 = { a2.id0, posicao[ BOLA ][ a2.id0 ], posicao[ XIS ][ a2.id0 ] };
@@ -243,10 +248,63 @@ def ganha(i, x):
     }
 }
 
-int main() {
-    if ( V ) {
-        std::cout << "Eae Rafao" << std::endl;
+void bot() {
+    for ( int jog = 0; jog < 2; ++jog ) {
+        for ( int K = 0; K < 8000; ++K ) {
+            if ( terminal( K ))
+                continue;
+            std::vector<int> jogadas;
+            ID_t id = Base::int2ID( K );
+            for ( int col = 0; col <= 2; ++col ) {
+                for ( int l = 0; l < 3; ++l ) {
+                    int k[] = { id.id0, id.id1, id.id2 };
+                    k[ col ] = grafo_coluna[ jog ][ k[ col ]][ l ];
+                    if ( k[ col ] != -1 ) {
+                        ID_t iaa( k[ 0 ], k[ 1 ], k[ 2 ] );
+                        int K2 = Base::ID2int( &iaa );
+                        if ( K != K2 ) //?
+                            jogadas.push_back( K2 );
+                    }
+                }
+            }
+            // Verifica se é preciso "passar a vez":
+            if ( jogadas.empty())
+                jogadas.push_back( K );
+
+            // define estrategia padrao: jogar aleatoriamente
+            auto tam = ( int ) jogadas.size();
+            int chute = std::rand() % tam;
+            if ( V ) std::cout << tam << " " << chute << " " << jogadas[ chute ] << std::endl;
+            estrategia[ jog * 8000 + K ] = jogadas[ chute ];
+            for ( int y : jogadas ) {
+                // mas se uma das jogadas deixa o oponente em posicao de derrota...
+                if ( vencedor[ 1 - jog ][ y ] == SEM_ESTRATEGIA ) {
+                    estrategia[ jog * 8000 + K ] = y;
+                    break;
+                }
+            }
+        }
     }
+
+    /**
+     * imprime uma lista de jogadas
+     * vez do 0 : vez do 1
+     * Sinal + quer dizer ganhador
+     *       - quer dizer perdedor
+     */
+    if ( V )
+        for ( int K = 0; K < 8000; ++K )
+            std::cout << (( vencedor[ 0 ][ K ] == COM_ESTRATEGIA ) ? "+" : "-" )
+                      << K
+                      << " : "
+                      << (( vencedor[ 1 ][ estrategia[ K ]] == COM_ESTRATEGIA ) ? "+" : "-" )
+                      << estrategia[ K ]
+                      << std::endl;
+}
+
+int main( int argc, char **argv ) {
+    if ( V )
+        std::cout << "Eae Rafao" << std::endl;
 
     // MUDANCA DE BASE
     if ( V ) {
@@ -263,11 +321,11 @@ int main() {
     // POSSIBILIDADE DA COLUNA
     if ( V ) std::cout << "Possibilidades de Config da Coluna:" << std::endl;
     int id = 0;
-    auto *configs = new config_t[tab_possib];
+    auto *configs = new config_t[tab_POSSIB];
 
     posicao = new int *[2];
-    posicao[ BOLA ] = new int[tab_possib];
-    posicao[ XIS ] = new int[tab_possib];
+    posicao[ BOLA ] = new int[tab_POSSIB];
+    posicao[ XIS ] = new int[tab_POSSIB];
 
     index = new int *[tab_ALTURA];
     for ( int i = 0; i < tab_ALTURA; ++i )
@@ -283,13 +341,13 @@ int main() {
                 id++;
             }
     if ( V )
-        for ( int i = 0; i <= tab_possib; ++i )
+        for ( int i = 0; i <= tab_POSSIB; ++i )
             printConfig( &configs[ i ] );
 
     if ( V ) {
         // INDEX
         std::cout << "POSICAO:" << std::endl;
-        for ( int i = 0; i <= tab_possib; ++i ) {
+        for ( int i = 0; i <= tab_POSSIB; ++i ) {
             std::cout << "  (" << BOLA << " "
                       << std::setw( 2 ) << i << ") -> "
                       << posicao[ BOLA ][ i ] << std::endl;
@@ -312,16 +370,16 @@ int main() {
 
     if ( V ) std::cout << "grafo_coluna:" << std::endl;
     for ( int jog = 0; jog < 2; ++jog )
-        for ( int col = 0; col <= tab_possib; ++col )
+        for ( int col = 0; col <= tab_POSSIB; ++col )
             for ( int i = 0; i < 3; ++i )
                 grafo_coluna[ jog ][ col ][ i ] = -1;
-    for ( int k = 0; k <= tab_possib; ++k ) {
+    for ( int k = 0; k <= tab_POSSIB; ++k ) {
         mov_valido_O_col( k, grafo_coluna[ BOLA ][ k ] );
         mov_valido_X_col( k, grafo_coluna[ XIS ][ k ] );
     }
     if ( V )
         for ( int j = 0; j < 2; ++j )
-            for ( int k = 0; k <= tab_possib; ++k )
+            for ( int k = 0; k <= tab_POSSIB; ++k )
                 std::cout << "  (" << j << ", " << std::setw( 2 ) << k << ") -> "
                           << std::setw( 2 ) << grafo_coluna[ j ][ k ][ 0 ] << " "
                           << std::setw( 2 ) << grafo_coluna[ j ][ k ][ 1 ] << " "
@@ -373,24 +431,153 @@ int main() {
             if ( vencedor[ jog ][ k ] == NAO_VISITANDO )
                 ganha( jog, k );
 
-    // TESTANDO (3,3,3)
-    ID_t t( 3, 3, 3 );
-    int idT = Base::ID2int( &t );
-    std::cout << vencedor[ 0 ][ idT ] << std::endl
-              << vencedor[ 1 ][ idT ]
-              << std::endl;
-    printTabuleiro( idT );
-    std::cout << std::endl;
-    for ( auto p : grafo_tabuleiro[ 0 ][ idT ] ) {
-        printTabuleiro( p );
-        std::cout << vencedor[ 0 ][ p ] << std::endl;
+    if ( V ) {
+        // TESTANDO (3,3,3)
+        ID_t t( 3, 3, 3 );
+        int idT = Base::ID2int( &t );
+        std::cout << vencedor[ 0 ][ idT ] << std::endl
+                  << vencedor[ 1 ][ idT ]
+                  << std::endl;
+        printTabuleiro( idT );
+        std::cout << std::endl;
+        for ( auto p : grafo_tabuleiro[ 0 ][ idT ] ) {
+            printTabuleiro( p );
+            std::cout << vencedor[ 0 ][ p ] << std::endl;
+        }
+        std::cout << std::endl;
+        for ( auto p : grafo_tabuleiro[ 1 ][ idT ] ) {
+            printTabuleiro( p );
+            std::cout << vencedor[ 1 ][ p ] << std::endl;
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
-    for ( auto p : grafo_tabuleiro[ 1 ][ idT ] ) {
-        printTabuleiro( p );
-        std::cout << vencedor[ 1 ][ p ] << std::endl;
+
+    bot();
+
+    if ( V )
+        std::cout << "Pronto pro combate!" << std::endl;
+
+    int vez = 0;
+
+    if ( std::string( argv[ 1 ] ) == "primeiro" ) {
+        // Se o argumento primeiro estiver presente, seu programa deve comecar jogando
+        if ( V )
+            std::cout << "Primeiro(BOT) comeca Jogando" << std::endl;
+        vez = 0;
+    } else if ( std::string( argv[ 1 ] ) == "segundo" ) {
+        // Se o argumento segundo estiver presente, seu programa deve esperar (ler da entrada padrao) a jogada do usuario
+        if ( V )
+            std::cout << "Segundo(VOCE) comeca Jogando" << std::endl;
+        vez = 1;
+    } else {
+        std::cout << "Sem Argumento primeiro/segundo" << std::endl;
+        return 1;
     }
-    std::cout << std::endl;
+
+    int coluna, passo, config_atual = 0, config_prox;
+    while ( true ) {
+        if ( V )
+            printTabuleiro( config_atual );
+
+        if ( vez == 0 ) { // bot joga
+//            config_prox = estrategia[ vez * 8000 + ( config_atual % 8000 ) ];
+            config_prox = estrategia[ ( 1 - vez ) * 8000 + ( config_atual % 8000 ) ];
+//            config_prox = estrategia[ config_atual ];
+            if ( V )
+                std::cout << " >>> ";
+            config_atual = convert_ID_para_PASSO( config_atual, config_prox );
+
+        } else if ( vez == 1 ) { // le jogada adversaria (jogador)
+            if ( V )
+                std::cout << " <<< ";
+            std::cin >> coluna >> passo;
+            config_atual = convert_PASSO_para_ID( config_atual, coluna, passo );
+
+        } else {
+            std::cout << "deu ruim no vez" << std::endl;
+            return 1;
+        }
+
+        if ( terminal( config_atual )) {
+            if ( V ) {
+                printTabuleiro( config_atual );
+                std::cout << "!!!! Ganhou: " << ( vez ? "O" : "X" ) << std::endl;
+            }
+            return 0;
+        }
+        // proximo jogador
+        vez = 1 - vez;
+    }
 
     return 0;
+}
+
+int convert_ID_para_PASSO( int id_atual, int id_prox ) {
+    int coluna = 0, passo = 0;
+    // convert pata config
+    ID_t atual = Base::int2ID( id_atual );
+    ID_t prox = Base::int2ID( id_prox );
+
+//    config_t c1 = { prox.id0, posicao[ BOLA ][ prox.id0 ], posicao[ XIS ][ prox.id0 ] };
+//    config_t c2 = { prox.id1, posicao[ BOLA ][ prox.id1 ], posicao[ XIS ][ prox.id1 ] };
+//    config_t c3 = { prox.id2, posicao[ BOLA ][ prox.id2 ], posicao[ XIS ][ prox.id2 ] };
+
+    // descobre coluna
+    if ( atual.id0 != prox.id0 ) {
+        coluna = 1;
+        // descobre qtos passos
+        passo = posicao[ XIS ][ atual.id0 ] - posicao[ XIS ][ prox.id0 ];
+
+    } else if ( atual.id1 != prox.id1 ) {
+        coluna = 2;
+        // descobre qtos passos
+        passo = posicao[ XIS ][ atual.id1 ] - posicao[ XIS ][ prox.id1 ];
+
+    } else if ( atual.id2 != prox.id2 ) {
+        coluna = 3;
+        // descobre qtos passos
+        passo = posicao[ XIS ][ atual.id2 ] - posicao[ XIS ][ prox.id2 ];
+    }
+
+    // print coluna passos
+    std::cout << coluna << " " << passo << std::endl;
+
+    return id_prox;
+}
+
+int convert_PASSO_para_ID( int id_atual, int coluna, int passo ) {
+    ID_t atual = Base::int2ID( id_atual );
+
+//    config_t c1 = { atual.id0, posicao[ BOLA ][ atual.id0 ], posicao[ XIS ][ atual.id0 ] };
+//    config_t c2 = { atual.id1, posicao[ BOLA ][ atual.id1 ], posicao[ XIS ][ atual.id1 ] };
+//    config_t c3 = { atual.id2, posicao[ BOLA ][ atual.id2 ], posicao[ XIS ][ atual.id2 ] };
+    // Na coluna
+    if ( coluna == 1 ) {
+        // qto XIS andou
+        atual.id0 = index[ posicao[ BOLA ][ atual.id0 ] + passo ][ posicao[ XIS ][ atual.id0 ]];
+//        c1 = { index[ posicao[ BOLA ][ atual.id0 ] - passo ][ posicao[ XIS ][ atual.id0 ]],
+//               posicao[ BOLA ][ atual.id0 ] - passo,
+//               posicao[ XIS ][ atual.id0 ] };
+    } else if ( coluna == 2 ) {
+        // qto XIS andou
+//        std::cout << "posicao[ BOLA ][ atual.id1 ]: " << posicao[ BOLA ][ atual.id1 ] << std::endl;
+//        std::cout << "posicao[ XIS ][ atual.id1 ]: " << posicao[ XIS ][ atual.id1 ] << std::endl;
+//        std::cout << "index[ posicao[ BOLA ][ atual.id1 ] + passo ][ posicao[ XIS ][ atual.id1 ]]"
+//                  << index[ posicao[ BOLA ][ atual.id1 ] + passo ][ posicao[ XIS ][ atual.id1 ]] << std::endl;
+        atual.id1 = index[ posicao[ BOLA ][ atual.id1 ] + passo ][ posicao[ XIS ][ atual.id1 ]];
+//        c2 = { index[ posicao[ BOLA ][ atual.id1 ] - passo ][ posicao[ XIS ][ atual.id1 ]],
+//               posicao[ BOLA ][ atual.id1 ] - passo,
+//               posicao[ XIS ][ atual.id1 ] };
+
+    } else if ( coluna == 3 ) {
+        // qto XIS andou
+        atual.id2 = index[ posicao[ BOLA ][ atual.id2 ] + passo ][ posicao[ XIS ][ atual.id2 ]];
+//        c3 = { index[ posicao[ BOLA ][ atual.id2 ] - passo ][ posicao[ XIS ][ atual.id2 ]],
+//               posicao[ BOLA ][ atual.id2 ] - passo,
+//               posicao[ XIS ][ atual.id2 ] };
+    }
+
+//    ID_t prox = ID( c1.id, c2.id, c3.id );
+    ID_t prox = ID( atual.id0, atual.id1, atual.id2 );
+    return Base::ID2int( &prox );
 }
