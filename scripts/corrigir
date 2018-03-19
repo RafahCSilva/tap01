@@ -1,0 +1,23 @@
+#!/bin/bash
+
+rm -f log0 log1 log2 2>/dev/null
+killall referee $1 gabarito 2>/dev/null
+
+if [[ ! -f ./referee ]]; then
+    gcc referee.c -o referee
+fi
+
+T=0
+C=0
+for i in {00..99}; do
+    T=$((T+1))
+    R=$(./competir $1 ./gabarito | grep "Vencedor: primeiro jogador.");
+    if [[ "$R" == "" ]]; then
+	echo -n "-"
+    else
+	C=$((C+1));
+	echo -n "+"
+    fi;
+done
+echo ""
+echo "Nota $C de $T."
