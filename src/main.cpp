@@ -26,8 +26,8 @@ int **index;
 int grafo_coluna[2][tab_POSSIB][3];
 std::vector<int> grafo_tabuleiro[2][8000];
 int vencedor[2][8000];
-std::vector<int> grafo[2 * 8000];
-int estrategia[2 * 8000];
+std::vector<int> grafo[2][8000];
+int estrategia[2][8000];
 
 /**
  * Struct do ID
@@ -40,7 +40,7 @@ struct ID_t {
     int id0, id1, id2;
 };
 
-static ID_t ID( int id0, int id1, int id2 ) { return { id0, id1, id2 }; }
+static ID_t ID( int id0, int id1, int id2 ) { return {id0, id1, id2}; }
 
 class Base {
 public:
@@ -80,7 +80,7 @@ struct config_t {
     int xis;
 };
 
-static config_t config( int id, int bola, int xis ) { return { id, bola, xis }; }
+static config_t config( int id, int bola, int xis ) { return {id, bola, xis}; }
 
 void printConfig( config_t *conf ) {
     std::cout << "  " << std::setw( 2 ) << conf->id << ": ";
@@ -156,36 +156,37 @@ void mov_valido_X_col( int k, int *M ) {
 int terminal( int k ) {
     int ganhou0 = 0, ganhou1 = 0;
     ID_t id = Base::int2ID( k );
-    int v[] = { id.id0, id.id1, id.id2 };
-    if ( posicao[ BOLA ][ 19 ] == posicao[ BOLA ][ v[ 0 ]] &&
-         posicao[ BOLA ][ 19 ] == posicao[ BOLA ][ v[ 1 ]] &&
-         posicao[ BOLA ][ 19 ] == posicao[ BOLA ][ v[ 2 ]] )
+    int v[] = {id.id0, id.id1, id.id2};
+    if ( posicao[ BOLA ][ v[ 0 ]] == 4 &&
+         posicao[ BOLA ][ v[ 1 ]] == 4 &&
+         posicao[ BOLA ][ v[ 2 ]] == 4 )
         ganhou0 = 1;
-    if ( posicao[ XIS ][ 19 ] == posicao[ XIS ][ v[ 0 ]] &&
-         posicao[ XIS ][ 19 ] == posicao[ XIS ][ v[ 1 ]] &&
-         posicao[ XIS ][ 19 ] == posicao[ XIS ][ v[ 2 ]] )
+    if ( posicao[ XIS ][ v[ 0 ]] == 0 &&
+         posicao[ XIS ][ v[ 1 ]] == 0 &&
+         posicao[ XIS ][ v[ 2 ]] == 0 )
         ganhou1 = 1;
     return ganhou0 + 2 * ganhou1;
 }
 
 void printTabuleiro( int id ) {
-    ID_t a2 = Base::int2ID( id );
+    ID_t a2 = Base::int2ID( id % 8000 );
     std::cout << "( " << id << " ) -> " << a2.id0 << " " << a2.id1 << " " << a2.id2 << std::endl;
-    config_t c1 = { a2.id0, posicao[ BOLA ][ a2.id0 ], posicao[ XIS ][ a2.id0 ] };
-    config_t c2 = { a2.id1, posicao[ BOLA ][ a2.id1 ], posicao[ XIS ][ a2.id1 ] };
-    config_t c3 = { a2.id2, posicao[ BOLA ][ a2.id2 ], posicao[ XIS ][ a2.id2 ] };
+    config_t c1 = {a2.id0, posicao[ BOLA ][ a2.id0 ], posicao[ XIS ][ a2.id0 ]};
+    config_t c2 = {a2.id1, posicao[ BOLA ][ a2.id1 ], posicao[ XIS ][ a2.id1 ]};
+    config_t c3 = {a2.id2, posicao[ BOLA ][ a2.id2 ], posicao[ XIS ][ a2.id2 ]};
     printConfig( &c1 );
     printConfig( &c2 );
     printConfig( &c3 );
 }
 
 void mov_validos_tabuleiro( const int jog, const int K, std::vector<int> *M ) {
+    M->clear();
     if ( terminal( K ))
         return;
     ID_t id = Base::int2ID( K );
     for ( int col = 0; col <= 2; ++col )
         for ( int l = 0; l < 3; ++l ) {
-            int k[] = { id.id0, id.id1, id.id2 };
+            int k[] = {id.id0, id.id1, id.id2};
             k[ col ] = grafo_coluna[ jog ][ k[ col ]][ l ];
             if ( k[ col ] != -1 ) {
                 ID_t iaa( k[ 0 ], k[ 1 ], k[ 2 ] );
@@ -206,7 +207,7 @@ void ganha( int jog, int k ) {
   1 = visitando
   2 = SEM estrategia
   3 = COM estrategia
-def ganha(i, x):
+  def ganha(i, x):
     # mark as visited:
     vencedor[ ( i, x ) ] = 1
     # no terminal node has a winning strategy:
@@ -224,16 +225,16 @@ def ganha(i, x):
           vencedor[ ( i, x ) ] = 2
 */
     vencedor[ jog ][ k ] = VISITANDO;
-//    if ( terminal( k )) {
-//        vencedor[ jog ][ k ] = SEM_ESTRATEGIA;
-//        return;
-//    }
-    int term = terminal( k );
-    if ( term ) {
-        vencedor[ jog ][ k ] = ( term == jog + 1 ) ? COM_ESTRATEGIA : SEM_ESTRATEGIA;
+    if ( terminal( k )) {
+        vencedor[ jog ][ k ] = SEM_ESTRATEGIA;
         return;
     }
-    for ( int prox : grafo[ jog * 8000 + k ] ) {
+    //int term = terminal( k );
+    //if ( term ) {
+    //    vencedor[ jog ][ k ] = ( term == jog + 1 ) ? COM_ESTRATEGIA : SEM_ESTRATEGIA;
+    //    return;
+    //}
+    for ( int prox : grafo[ jog ][ k ] ) {
         int adv = prox / 8000;
         int y = prox % 8000;
         if ( V )
@@ -244,9 +245,9 @@ def ganha(i, x):
             ganha( adv, y );
         if ( vencedor[ adv ][ y ] == SEM_ESTRATEGIA )
             vencedor[ jog ][ k ] = COM_ESTRATEGIA;
-        if ( vencedor[ jog ][ k ] == VISITANDO )
-            vencedor[ jog ][ k ] = SEM_ESTRATEGIA;
     }
+    if ( vencedor[ jog ][ k ] == VISITANDO )
+        vencedor[ jog ][ k ] = SEM_ESTRATEGIA;
 }
 
 void treina_bot() {
@@ -254,20 +255,23 @@ void treina_bot() {
         for ( int K = 0; K < 8000; ++K ) {
             if ( terminal( K ))
                 continue;
-            std::vector<int> jogadas;
-            ID_t id = Base::int2ID( K );
-            for ( int col = 0; col <= 2; ++col ) {
-                for ( int l = 0; l < 3; ++l ) {
-                    int k[] = { id.id0, id.id1, id.id2 };
-                    k[ col ] = grafo_coluna[ jog ][ k[ col ]][ l ];
-                    if ( k[ col ] != -1 ) {
-                        ID_t iaa( k[ 0 ], k[ 1 ], k[ 2 ] );
-                        int K2 = Base::ID2int( &iaa );
-                        if ( K != K2 )
-                            jogadas.push_back( K2 );
-                    }
-                }
-            }
+            std::vector<int> jogadas = grafo[ jog ][ K ];
+            //ID_t id = Base::int2ID( K );
+            //for (auto i : grafo_tabuleiro[ jog ][ K ]) {
+            /* code */
+            //}
+            //for ( int col = 0; col <= 2; ++col ) {
+            //    for ( int l = 0; l < 3; ++l ) {
+            //        int k[] = { id.id0, id.id1, id.id2 };
+            //        k[ col ] = grafo_coluna[ jog ][ k[ col ]][ l ];
+            //        if ( k[ col ] != -1 ) {
+            //            ID_t iaa( k[ 0 ], k[ 1 ], k[ 2 ] );
+            //            int K2 = Base::ID2int( &iaa );
+            //            if ( K != K2 )
+            //                jogadas.push_back( K2 );
+            //        }
+            //    }
+            //}
             // Verifica se é preciso "passar a vez":
             if ( jogadas.empty())
                 jogadas.push_back( K );
@@ -276,12 +280,12 @@ void treina_bot() {
             auto tam = ( int ) jogadas.size();
             int chute = std::rand() % tam;
             if ( V ) std::cout << tam << " " << chute << " " << jogadas[ chute ] << std::endl;
-            estrategia[ jog * 8000 + K ] = jogadas[ chute ];
-//            std::reverse( jogadas.begin(), jogadas.end());
+            estrategia[ jog ][ K ] = jogadas[ chute ];
+            std::reverse( jogadas.begin(), jogadas.end());
             for ( int y : jogadas ) {
                 // mas se uma das jogadas deixa o oponente em posicao de derrota...
-                if ( vencedor[ 1 - jog ][ y ] == COM_ESTRATEGIA ) {
-                    estrategia[ jog * 8000 + K ] = y;
+                if ( vencedor[ 1 - jog ][ y % 8000 ] == SEM_ESTRATEGIA ) {
+                    estrategia[ jog ][ K ] = y;
                     break;
                 }
             }
@@ -298,9 +302,11 @@ void treina_bot() {
         for ( int K = 0; K < 8000; ++K )
             std::cout << (( vencedor[ 0 ][ K ] == COM_ESTRATEGIA ) ? "+" : "-" )
                       << K
-                      << " : "
-                      << (( vencedor[ 1 ][ estrategia[ K ]] == COM_ESTRATEGIA ) ? "+" : "-" )
-                      << estrategia[ K ]
+                      << " ("
+                      << estrategia[ 1 ][ K ]
+                      << ") : "
+                      << (( vencedor[ 1 ][ estrategia[ 0 ][ K ]] == COM_ESTRATEGIA ) ? "+" : "-" )
+                      << estrategia[ 0 ][ K ]
                       << std::endl;
 }
 
@@ -329,16 +335,15 @@ int convert_ID_para_PASSO( int id_atual, int id_prox ) {
 
     // print coluna passos
     //std::cout << coluna << " " << passo << std::endl;
-    fprintf(stdout, "%d %d\n", coluna, passo );
-    fprintf(stderr, "[X] %d %d\n", coluna, passo );
+    fprintf( stdout, "%d %d\n", coluna, passo );
+    fprintf( stderr, "[X] %d %d\n", coluna, passo );
     return id_prox;
 }
 
 int convert_PASSO_para_ID( int id_atual, int coluna, int passo ) {
     ID_t atual = Base::int2ID( id_atual );
 
-    //? verificar se eh entrada valida
-    int col[] = { atual.id0, atual.id1, atual.id2 };
+    int col[] = {atual.id0, atual.id1, atual.id2};
     if (( posicao[ BOLA ][ col[ coluna - 1 ]] + passo ) > 4 ) {
         return id_atual;
     }
@@ -459,12 +464,12 @@ int main( int argc, char **argv ) {
     for ( int jog = 0; jog < 2; ++jog )
         for ( int k = 0; k < 8000; ++k )
             for ( int l : grafo_tabuleiro[ jog ][ k ] )
-                grafo[ jog * 8000 + k ].push_back((( 1 - jog ) * 8000 ) + l );
+                grafo[ jog ][ k ].push_back((( 1 - jog ) * 8000 ) + l );
     if ( V ) {
         std::cout << "GRAFO:" << std::endl;
         for ( int k = 0; k < 2 * 8000; ++k ) {
             std::cout << "  (" << k << ") -> ";
-            for ( int l : grafo[ k ] )
+            for ( int l : grafo[ k / 8000 ][ k % 8000 ] )
                 std::cout << l << " ";
             std::cout << std::endl;
         }
@@ -477,8 +482,6 @@ int main( int argc, char **argv ) {
     /*
     # Decide se existe uma estratégia vencedora para cada possível estado do jogo:
     for i in range(2):
-        # Se você implementou o grafo reduzido descrito na seção anterior,
-        # então use representantes.keys() no lugar de range(8000) a seguir
         for K in range(8000):
             if not (i, K) in vencedor.keys():
                 ganha(i, K)
@@ -540,7 +543,7 @@ int main( int argc, char **argv ) {
             printTabuleiro( config_atual );
 
         if ( vez == 0 ) { // bot joga
-            config_prox = estrategia[ ( 1 - vez ) * 8000 + ( config_atual % 8000 ) ];
+            config_prox = estrategia[ 1 ][ ( config_atual % 8000 ) ];
             if ( V )
                 std::cout << " [X] >>> ";
             config_atual = convert_ID_para_PASSO( config_atual, config_prox );
@@ -549,12 +552,12 @@ int main( int argc, char **argv ) {
             if ( V )
                 std::cout << " [O] <<< ";
             //std::cin >> coluna >> passo;
-            fscanf(stdin, "%d %d", &coluna, &passo );
-            fprintf(stderr, "[O] %d %d\n", coluna, passo );
+            fscanf( stdin, "%d %d", &coluna, &passo );
+            fprintf( stderr, "[O] %d %d\n", coluna, passo );
             config_atual = convert_PASSO_para_ID( config_atual, coluna, passo );
 
         } else {
-            std::cout << "deu ruim no vez" << std::endl;
+            std::cerr << "deu ruim no vez" << std::endl;
             return 1;
         }
 
