@@ -1,10 +1,13 @@
 /**
  * @author Rafael Cardoso da Silva 21048012
  *
+ * g++ main.cpp -o rcs.exe -std=c++11
  */
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <algorithm>
+#include <stdio.h>
 
 #define V false     // VERBOSE
 
@@ -17,8 +20,6 @@
 #define VISITANDO       1   // = visitando
 #define SEM_ESTRATEGIA  2   // = SEM estrategia
 #define COM_ESTRATEGIA  3   // = COM estrategia
-
-#define estado( j, k ) (j *8000+ k)
 
 int **posicao;
 int **index;
@@ -78,10 +79,6 @@ struct config_t {
     int bola;
     int xis;
 };
-
-int convert_ID_para_PASSO( int atual, int prox );
-
-int convert_PASSO_para_ID( int atual, int coluna, int passo );
 
 static config_t config( int id, int bola, int xis ) { return { id, bola, xis }; }
 
@@ -160,18 +157,17 @@ int terminal( int k ) {
     int ganhou0 = 0, ganhou1 = 0;
     ID_t id = Base::int2ID( k );
     int v[] = { id.id0, id.id1, id.id2 };
-    if ( posicao[ 1 ][ 3 ] == posicao[ 0 ][ v[ 0 ]] &&
-         posicao[ 1 ][ 3 ] == posicao[ 0 ][ v[ 1 ]] &&
-         posicao[ 1 ][ 3 ] == posicao[ 0 ][ v[ 2 ]] )
+    if ( posicao[ BOLA ][ 19 ] == posicao[ BOLA ][ v[ 0 ]] &&
+         posicao[ BOLA ][ 19 ] == posicao[ BOLA ][ v[ 1 ]] &&
+         posicao[ BOLA ][ 19 ] == posicao[ BOLA ][ v[ 2 ]] )
         ganhou0 = 1;
-    if ( posicao[ 1 ][ v[ 0 ]] == posicao[ 0 ][ 3 ] &&
-         posicao[ 1 ][ v[ 1 ]] == posicao[ 0 ][ 3 ] &&
-         posicao[ 1 ][ v[ 2 ]] == posicao[ 0 ][ 3 ] )
+    if ( posicao[ XIS ][ 19 ] == posicao[ XIS ][ v[ 0 ]] &&
+         posicao[ XIS ][ 19 ] == posicao[ XIS ][ v[ 1 ]] &&
+         posicao[ XIS ][ 19 ] == posicao[ XIS ][ v[ 2 ]] )
         ganhou1 = 1;
     return ganhou0 + 2 * ganhou1;
 }
 
-// (1876) -> 9876
 void printTabuleiro( int id ) {
     ID_t a2 = Base::int2ID( id );
     std::cout << "( " << id << " ) -> " << a2.id0 << " " << a2.id1 << " " << a2.id2 << std::endl;
@@ -228,8 +224,13 @@ def ganha(i, x):
           vencedor[ ( i, x ) ] = 2
 */
     vencedor[ jog ][ k ] = VISITANDO;
-    if ( terminal( k )) {
-        vencedor[ jog ][ k ] = SEM_ESTRATEGIA;
+//    if ( terminal( k )) {
+//        vencedor[ jog ][ k ] = SEM_ESTRATEGIA;
+//        return;
+//    }
+    int term = terminal( k );
+    if ( term ) {
+        vencedor[ jog ][ k ] = ( term == jog + 1 ) ? COM_ESTRATEGIA : SEM_ESTRATEGIA;
         return;
     }
     for ( int prox : grafo[ jog * 8000 + k ] ) {
@@ -248,7 +249,7 @@ def ganha(i, x):
     }
 }
 
-void bot() {
+void treina_bot() {
     for ( int jog = 0; jog < 2; ++jog ) {
         for ( int K = 0; K < 8000; ++K ) {
             if ( terminal( K ))
@@ -262,7 +263,7 @@ void bot() {
                     if ( k[ col ] != -1 ) {
                         ID_t iaa( k[ 0 ], k[ 1 ], k[ 2 ] );
                         int K2 = Base::ID2int( &iaa );
-                        if ( K != K2 ) //?
+                        if ( K != K2 )
                             jogadas.push_back( K2 );
                     }
                 }
@@ -276,9 +277,10 @@ void bot() {
             int chute = std::rand() % tam;
             if ( V ) std::cout << tam << " " << chute << " " << jogadas[ chute ] << std::endl;
             estrategia[ jog * 8000 + K ] = jogadas[ chute ];
+//            std::reverse( jogadas.begin(), jogadas.end());
             for ( int y : jogadas ) {
                 // mas se uma das jogadas deixa o oponente em posicao de derrota...
-                if ( vencedor[ 1 - jog ][ y ] == SEM_ESTRATEGIA ) {
+                if ( vencedor[ 1 - jog ][ y ] == COM_ESTRATEGIA ) {
                     estrategia[ jog * 8000 + K ] = y;
                     break;
                 }
@@ -302,9 +304,64 @@ void bot() {
                       << std::endl;
 }
 
+int convert_ID_para_PASSO( int id_atual, int id_prox ) {
+    int coluna = 0, passo = 0;
+    // convert pata config
+    ID_t atual = Base::int2ID( id_atual );
+    ID_t prox = Base::int2ID( id_prox );
+
+    // descobre coluna
+    if ( atual.id0 != prox.id0 ) {
+        coluna = 1;
+        // descobre qtos passos
+        passo = posicao[ XIS ][ atual.id0 ] - posicao[ XIS ][ prox.id0 ];
+
+    } else if ( atual.id1 != prox.id1 ) {
+        coluna = 2;
+        // descobre qtos passos
+        passo = posicao[ XIS ][ atual.id1 ] - posicao[ XIS ][ prox.id1 ];
+
+    } else if ( atual.id2 != prox.id2 ) {
+        coluna = 3;
+        // descobre qtos passos
+        passo = posicao[ XIS ][ atual.id2 ] - posicao[ XIS ][ prox.id2 ];
+    }
+
+    // print coluna passos
+    //std::cout << coluna << " " << passo << std::endl;
+    fprintf(stdout, "%d %d\n", coluna, passo );
+    fprintf(stderr, "[X] %d %d\n", coluna, passo );
+    return id_prox;
+}
+
+int convert_PASSO_para_ID( int id_atual, int coluna, int passo ) {
+    ID_t atual = Base::int2ID( id_atual );
+
+    //? verificar se eh entrada valida
+    int col[] = { atual.id0, atual.id1, atual.id2 };
+    if (( posicao[ BOLA ][ col[ coluna - 1 ]] + passo ) > 4 ) {
+        return id_atual;
+    }
+
+    // Na coluna
+    if ( coluna == 1 ) {
+        // qto XIS andou
+        atual.id0 = index[ posicao[ BOLA ][ atual.id0 ] + passo ][ posicao[ XIS ][ atual.id0 ]];
+    } else if ( coluna == 2 ) {
+        // qto XIS andou
+        atual.id1 = index[ posicao[ BOLA ][ atual.id1 ] + passo ][ posicao[ XIS ][ atual.id1 ]];
+    } else if ( coluna == 3 ) {
+        // qto XIS andou
+        atual.id2 = index[ posicao[ BOLA ][ atual.id2 ] + passo ][ posicao[ XIS ][ atual.id2 ]];
+    }
+
+    ID_t prox = ID( atual.id0, atual.id1, atual.id2 );
+    return Base::ID2int( &prox );
+}
+
 int main( int argc, char **argv ) {
     if ( V )
-        std::cout << "Eae Rafao" << std::endl;
+        std::cout << "Rafael Cardoso da Silva 21048012" << std::endl;
 
     // MUDANCA DE BASE
     if ( V ) {
@@ -331,6 +388,7 @@ int main( int argc, char **argv ) {
     for ( int i = 0; i < tab_ALTURA; ++i )
         index[ i ] = new int[tab_ALTURA];
 
+    // POSICAO e INDEX
     for ( int i = 0; i < tab_ALTURA; ++i ) // BOLA
         for ( int j = tab_ALTURA - 1; j >= 0; --j ) // XIS
             if ( i != j ) {
@@ -345,7 +403,6 @@ int main( int argc, char **argv ) {
             printConfig( &configs[ i ] );
 
     if ( V ) {
-        // INDEX
         std::cout << "POSICAO:" << std::endl;
         for ( int i = 0; i <= tab_POSSIB; ++i ) {
             std::cout << "  (" << BOLA << " "
@@ -452,14 +509,17 @@ int main( int argc, char **argv ) {
         std::cout << std::endl;
     }
 
-    bot();
+    treina_bot();
 
     if ( V )
         std::cout << "Pronto pro combate!" << std::endl;
 
     int vez = 0;
 
-    if ( std::string( argv[ 1 ] ) == "primeiro" ) {
+    if ( argc == 1 ) {
+        std::cerr << "Sem Argumento primeiro/segundo." << std::endl;
+        return 1;
+    } else if ( std::string( argv[ 1 ] ) == "primeiro" ) {
         // Se o argumento primeiro estiver presente, seu programa deve comecar jogando
         if ( V )
             std::cout << "Primeiro(BOT) comeca Jogando" << std::endl;
@@ -470,7 +530,7 @@ int main( int argc, char **argv ) {
             std::cout << "Segundo(VOCE) comeca Jogando" << std::endl;
         vez = 1;
     } else {
-        std::cout << "Sem Argumento primeiro/segundo" << std::endl;
+        std::cerr << "Sem Argumento primeiro/segundo." << std::endl;
         return 1;
     }
 
@@ -480,17 +540,17 @@ int main( int argc, char **argv ) {
             printTabuleiro( config_atual );
 
         if ( vez == 0 ) { // bot joga
-//            config_prox = estrategia[ vez * 8000 + ( config_atual % 8000 ) ];
             config_prox = estrategia[ ( 1 - vez ) * 8000 + ( config_atual % 8000 ) ];
-//            config_prox = estrategia[ config_atual ];
             if ( V )
-                std::cout << " >>> ";
+                std::cout << " [X] >>> ";
             config_atual = convert_ID_para_PASSO( config_atual, config_prox );
 
         } else if ( vez == 1 ) { // le jogada adversaria (jogador)
             if ( V )
-                std::cout << " <<< ";
-            std::cin >> coluna >> passo;
+                std::cout << " [O] <<< ";
+            //std::cin >> coluna >> passo;
+            fscanf(stdin, "%d %d", &coluna, &passo );
+            fprintf(stderr, "[O] %d %d\n", coluna, passo );
             config_atual = convert_PASSO_para_ID( config_atual, coluna, passo );
 
         } else {
@@ -510,74 +570,4 @@ int main( int argc, char **argv ) {
     }
 
     return 0;
-}
-
-int convert_ID_para_PASSO( int id_atual, int id_prox ) {
-    int coluna = 0, passo = 0;
-    // convert pata config
-    ID_t atual = Base::int2ID( id_atual );
-    ID_t prox = Base::int2ID( id_prox );
-
-//    config_t c1 = { prox.id0, posicao[ BOLA ][ prox.id0 ], posicao[ XIS ][ prox.id0 ] };
-//    config_t c2 = { prox.id1, posicao[ BOLA ][ prox.id1 ], posicao[ XIS ][ prox.id1 ] };
-//    config_t c3 = { prox.id2, posicao[ BOLA ][ prox.id2 ], posicao[ XIS ][ prox.id2 ] };
-
-    // descobre coluna
-    if ( atual.id0 != prox.id0 ) {
-        coluna = 1;
-        // descobre qtos passos
-        passo = posicao[ XIS ][ atual.id0 ] - posicao[ XIS ][ prox.id0 ];
-
-    } else if ( atual.id1 != prox.id1 ) {
-        coluna = 2;
-        // descobre qtos passos
-        passo = posicao[ XIS ][ atual.id1 ] - posicao[ XIS ][ prox.id1 ];
-
-    } else if ( atual.id2 != prox.id2 ) {
-        coluna = 3;
-        // descobre qtos passos
-        passo = posicao[ XIS ][ atual.id2 ] - posicao[ XIS ][ prox.id2 ];
-    }
-
-    // print coluna passos
-    std::cout << coluna << " " << passo << std::endl;
-
-    return id_prox;
-}
-
-int convert_PASSO_para_ID( int id_atual, int coluna, int passo ) {
-    ID_t atual = Base::int2ID( id_atual );
-
-//    config_t c1 = { atual.id0, posicao[ BOLA ][ atual.id0 ], posicao[ XIS ][ atual.id0 ] };
-//    config_t c2 = { atual.id1, posicao[ BOLA ][ atual.id1 ], posicao[ XIS ][ atual.id1 ] };
-//    config_t c3 = { atual.id2, posicao[ BOLA ][ atual.id2 ], posicao[ XIS ][ atual.id2 ] };
-    // Na coluna
-    if ( coluna == 1 ) {
-        // qto XIS andou
-        atual.id0 = index[ posicao[ BOLA ][ atual.id0 ] + passo ][ posicao[ XIS ][ atual.id0 ]];
-//        c1 = { index[ posicao[ BOLA ][ atual.id0 ] - passo ][ posicao[ XIS ][ atual.id0 ]],
-//               posicao[ BOLA ][ atual.id0 ] - passo,
-//               posicao[ XIS ][ atual.id0 ] };
-    } else if ( coluna == 2 ) {
-        // qto XIS andou
-//        std::cout << "posicao[ BOLA ][ atual.id1 ]: " << posicao[ BOLA ][ atual.id1 ] << std::endl;
-//        std::cout << "posicao[ XIS ][ atual.id1 ]: " << posicao[ XIS ][ atual.id1 ] << std::endl;
-//        std::cout << "index[ posicao[ BOLA ][ atual.id1 ] + passo ][ posicao[ XIS ][ atual.id1 ]]"
-//                  << index[ posicao[ BOLA ][ atual.id1 ] + passo ][ posicao[ XIS ][ atual.id1 ]] << std::endl;
-        atual.id1 = index[ posicao[ BOLA ][ atual.id1 ] + passo ][ posicao[ XIS ][ atual.id1 ]];
-//        c2 = { index[ posicao[ BOLA ][ atual.id1 ] - passo ][ posicao[ XIS ][ atual.id1 ]],
-//               posicao[ BOLA ][ atual.id1 ] - passo,
-//               posicao[ XIS ][ atual.id1 ] };
-
-    } else if ( coluna == 3 ) {
-        // qto XIS andou
-        atual.id2 = index[ posicao[ BOLA ][ atual.id2 ] + passo ][ posicao[ XIS ][ atual.id2 ]];
-//        c3 = { index[ posicao[ BOLA ][ atual.id2 ] - passo ][ posicao[ XIS ][ atual.id2 ]],
-//               posicao[ BOLA ][ atual.id2 ] - passo,
-//               posicao[ XIS ][ atual.id2 ] };
-    }
-
-//    ID_t prox = ID( c1.id, c2.id, c3.id );
-    ID_t prox = ID( atual.id0, atual.id1, atual.id2 );
-    return Base::ID2int( &prox );
 }
