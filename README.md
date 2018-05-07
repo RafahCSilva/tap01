@@ -1,9 +1,20 @@
-# Técnicas Avançadas de Programação
+# Projeto 1: O Jogo dos Peões
 
-## Projeto 1: O Jogo dos Peões
+**UFABC - Universidade Federal do ABC**
 
+Disciplina: **Técnicas Avançadas de Programação – 2018.Q1**
+
+Professor: **Daniel Morgato Martin**
+
+Aluno: **Rafael Cardoso da Silva** 21048012
+
+- [link do Enunciado](enunciado.pdf)
+
+## Compila e execute Corretor do Professor:
 
 ```bash
-g++ rafaelcardoso_tap01.cpp -o rafaelcardoso_tap01.exe -std=c++11 && cp rafaelcardoso_tap01.exe ../scripts/
-for i in {1..10}; do ./corrigir ./rafaelcardoso_tap01.exe ; done
+g++ src/rafaelcardoso_tap01.cpp -o src/rafaelcardoso_tap01.exe -std=c++11
+cp ./src/rafaelcardoso_tap01.exe ../scripts/
+./corrigir ./rafaelcardoso_tap01.exe
 ```
+
